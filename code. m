@@ -1,0 +1,53 @@
+% Step 1: Generate Time-Domain Signal for DTMF Symbol (sym2TT function)
+function x = generateDTMFSymbol(S)
+    % Define DTMF frequencies
+    freqs = [697 770 852 941; 1209 1336 1477 1633];
+    symbols = ['1', '2', '3', 'A';
+               '4', '5', '6', 'B';
+               '7', '8', '9', 'C';
+               '*', '0', '#', 'D'];
+    % Find corresponding frequencies
+    [row, col] = find(symbols == S);
+    f1 = freqs(1, col);
+    f2 = freqs(2, row);
+    % Generate time-domain signal
+    t = 0:1/8000:0.1; % 100 ms
+    x = sin(2*pi*f1*t) + sin(2*pi*f2*t);
+end
+
+% Step 2: Generate DTMF Sequence for Your Cell Phone Number
+cell_number = '1234567890'; % Your cell phone number
+x = [];
+for i = 1:length(cell_number)
+    x = [x, generateDTMFSymbol(cell_number(i)), zeros(1, 0.02*8000)]; % 20 ms guard interval
+end
+
+% Step 3: Add Noise to the Signal (Alternative method without awgn)
+y = x + 0.1*randn(size(x)); % Additive white Gaussian noise with variance 0.1
+
+% Step 4: Store the Generated Signal as an Audio File
+audiowrite('dtmf_signal.wav', y, 8000); % Sampling rate: 8000 Hz
+
+% Step 5: Plot the Signal
+t = (0:length(y)-1)/8000;
+plot(t, y);
+xlabel('Time (s)');
+ylabel('Amplitude');
+title('DTMF Signal');
+
+% Step 6: Compute and Plot the Spectrum
+Y = fft(y);
+frequencies = linspace(0, 8000, length(Y));
+plot(frequencies, 20*log10(abs(Y)));
+xlabel('Frequency (Hz)');
+ylabel('Magnitude (dB)');
+title('Magnitude Spectrum of DTMF Signal');
+xlim([600, 1700]);
+
+% Step 7: Create Spectrograms
+window_sizes = [16, 64, 256, 1024, 4096];
+for i = 1:length(window_sizes)
+    window_size = window_sizes(i);
+    spectrogram(y, window_size, 0.5*window_size, 214, 8000, 'yaxis');
+    title(sprintf('Spectrogram with Window Size %d', window_size));
+end
